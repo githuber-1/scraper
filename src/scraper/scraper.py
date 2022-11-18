@@ -18,7 +18,7 @@ class Scraper():
         self.WORKOUTS_URL = 'https://otgstrength.truecoach.co/client/workouts'
         self.workouts =  {}
         self.previous_month = ''
-        self.previous_year = '2022'
+        self.previous_year = 2022
         self.allPages = allPages
         self.shortWait = 500
         self.mediumWait = 2000
@@ -84,7 +84,7 @@ class Scraper():
                 loader = await page.querySelector('button[class="btn btn--a btn--s btn--wide"]')
                 #print(f'loader: {loader}')
                 if loader is not None:   
-                    loader_text = await loader.getProperty('innerText)')
+                    #loader_text = await loader.getProperty('innerText)')
                     #print(loader_text)
                     await page.click('button[class="btn btn--a btn--s btn--wide"]')
                     await page.waitFor(self.shortWait)
@@ -95,7 +95,6 @@ class Scraper():
         # find all workout links
         workout_pages = await page.querySelectorAll('a[class="ember-view btn btn--base btn--s focus:underline')
         wk_links = []
-        # TODO: turn this into expand_links function
         for w in workout_pages:
             wk_link = await w.getProperty('href')
             wk_link = await wk_link.jsonValue()
@@ -138,7 +137,7 @@ class Scraper():
         day_numeric_string = "".join(numeric_filter)
         self.previous_month = month
 
-        date = day_numeric_string + "/" + month + "/" + self.previous_year
+        date = day_numeric_string + "/" + month + "/" + str(self.previous_year)
 
         #print(f'{month} / {day} / {year} ')
 
@@ -167,8 +166,8 @@ class Scraper():
                 csv_workouts.append(csv_workout)
         
         #print(csv_workouts)
-
-        with open('workouts.csv', 'w', newline='') as file:
+ 
+        with open('workouts.csv', 'w', newline='', encoding="utf-8") as file:
             writer = csv.writer(file, delimiter=',')
             for line in csv_workouts:
                 writer.writerow(line)
