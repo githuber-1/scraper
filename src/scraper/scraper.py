@@ -15,8 +15,89 @@ PW = 'a5QrGdyrUwu6kLq'
 
 WORKOUTS = {}
 
-def expand_links():
-    
+def print_progress_bar(total, current):
+    progress = int( (current / total) * 100 )
+    progress_bar = "*" * progress
+    empty_bar = ( (100 - progress) * "-")
+    print('( ' + progress_bar + empty_bar + " )")
+
+async def expand_links(page):
+    # get all past works on page
+    cont = True
+    while cont:
+
+        loader = await page.querySelector('button[class="btn btn--a btn--s btn--wide"]')
+        #print(f'loader: {loader}')
+        if loader is not None:   
+            loader_text = await loader.getProperty('innerText)')
+            #print(loader_text)
+            await page.click('button[class="btn btn--a btn--s btn--wide"]')
+            await page.waitFor(500)
+        else:
+            cont = False
+    # find all workout links
+    workout_pages = await page.querySelectorAll('a[class="ember-view btn btn--base btn--s focus:underline')
+    wk_links = []
+    # TODO: turn this into expand_links function
+    for w in workout_pages:
+        wk_link = await w.getProperty('href')
+        wk_link = await wk_link.jsonValue()
+        wk_links.append(wk_link)
+    print(f'Number of workouts to parse: {len(wk_links)}')
+    # Visit each workout page
+    iteration = 0
+    for link in wk_links:
+        iteration += 1
+        #print(f'going to {link}')
+        await page.goto(link)
+        await page.waitFor(2000)
+        workout_name = await page.querySelector('h3[class="prnt-title h2 split--cell"]') 
+        if workout_name is not None:
+            n = await workout_name.getProperty('innerText')
+            #print(await n.jsonValue())
+        else:
+            workout_name = await page.querySelector('h3[class="prnt-title h2"]')
+            n = await workout_name.getProperty('innerText')
+            #print(await n.jsonValue())
+        # get date
+        date = await page.querySelector('h2[class="font-base font-semibold clientWorkoutHeader-title"]')
+        n = await date.getProperty('innerText')
+        n = await n.jsonValue()
+        #print(f'date: {n}')
+        date = n
+        # get exercise names
+        names = []
+        exercise_names = await page.querySelectorAll('h4[class="whitespace-pre-line"]')
+        for exercise_name in exercise_names:
+            n = await exercise_name.getProperty('innerText')
+            n = await n.jsonValue()
+            #print('     ' + n)
+            names.append(n)
+        # get exercise info
+        infos = []
+        exercise_infos = await page.querySelectorAll('p[class="well well--xs whitespace-pre-line til"]')
+        for exercise_info in exercise_infos:
+            n = await exercise_info.getProperty('innerText')
+            n = await n.jsonValue()
+            #print('         ' + n)
+            infos.append(n)
+        # get exercise results
+        results = []
+        exercise_results = await page.querySelectorAll('textarea[class="ember-text-area ember-view workout-item-result"]')
+        #print(f'results: {exercise_results}')
+        for result in exercise_results:
+            n = await result.getProperty('value')
+            n = await n.jsonValue()
+            #print(f'result: {n}')
+            #print('         ' + n)
+            results.append(n)
+
+        overall_dict = ({"info": {"name": names, "info": infos, "results": results}})
+
+        #print(json.dumps(overall_dict, indent=4))
+        print_progress_bar(len(wk_links), iteration)
+        WORKOUTS.update({date: overall_dict})
+
 
 async def main():
     # LOGIN -------------------------------------------------------------------------------
@@ -131,99 +212,13 @@ async def main():
     #go to past tab
     await page.click('button[class="clientHeader-tab ivy-tabs-tab ember-view"]')
     await page.waitFor(5000)
-    print('past workouts')
 
-    # get all past works on page
-    # cont = True
-    # while cont:
+    await expand_links(page)
 
-    #     loader = await page.querySelector('button[class="btn btn--a btn--s btn--wide"]')
-    #     #print(f'loader: {loader}')
-    #     if loader is not None:   
-    #         loader_text = await loader.getProperty('innerText)')
-    #         #print(loader_text)
-    #         await page.click('button[class="btn btn--a btn--s btn--wide"]')
-    #         await page.waitFor(500)
-    #     else:
-    #         cont = False
-
-    workout_pages = await page.querySelectorAll('a[class="ember-view btn btn--base btn--s focus:underline')
-    
-    wk_links = []
-    # TODO: turn this into expand_links function
-    for w in workout_pages:
-        wk_link = await w.getProperty('href')
-        wk_link = await wk_link.jsonValue()
-        wk_links.append(wk_link)
-    print(f'number of workouts to parse: {len(wk_links)}')
-    # Visit each workout page
-    for link in wk_links:
-        #print(f'going to {link}')
-        await page.goto(link)
-        await page.waitFor(2000)
-        workout_name = await page.querySelector('h3[class="prnt-title h2 split--cell"]') 
-        if workout_name is not None:
-            n = await workout_name.getProperty('innerText')
-            print(await n.jsonValue())
-        else:
-            workout_name = await page.querySelector('h3[class="prnt-title h2"]')
-            n = await workout_name.getProperty('innerText')
-            print(await n.jsonValue())
-        # get date
-        date = await page.querySelector('h2[class="font-base font-semibold clientWorkoutHeader-title"]')
-        n = await date.getProperty('innerText')
-        n = await n.jsonValue()
-        print(f'date: {n}')
-        date = n
-        # get exercise names
-        names = []
-        exercise_names = await page.querySelectorAll('h4[class="whitespace-pre-line"]')
-        for exercise_name in exercise_names:
-            n = await exercise_name.getProperty('innerText')
-            n = await n.jsonValue()
-            #print('     ' + n)
-            names.append(n)
-        # get exercise info
-        infos = []
-        exercise_infos = await page.querySelectorAll('p[class="well well--xs whitespace-pre-line til"]')
-        for exercise_info in exercise_infos:
-            n = await exercise_info.getProperty('innerText')
-            n = await n.jsonValue()
-            #print('         ' + n)
-            infos.append(n)
-        # get exercise results
-        results = []
-        exercise_results = await page.querySelectorAll('textarea[class="ember-text-area ember-view workout-item-result"]')
-        #print(f'results: {exercise_results}')
-        for result in exercise_results:
-            n = await result.getProperty('value')
-            n = await n.jsonValue()
-            print(f'result: {n}')
-            #print('         ' + n)
-            results.append(n)
-
-        overall_dict = {}
-        # for i, name in enumerate(names):
-        #     if i < len(infos):
-        #         info = infos[i]
-        #     else:
-        #         info = ''
-        #     if i < len(results):  
-        #         result = results[i]
-        #     else:
-        #         result = ''
-
-        #     overall_dict.update({"info": {"name": name, "info": info, "results": result}})
-        overall_dict.update({"info": {"name": names, "info": infos, "results": results}})
-
-        #print(json.dumps(overall_dict, indent=4))
-        print('')
-
-        WORKOUTS.update({date: overall_dict})
     await browser.close() 
 
     print(json.dumps(WORKOUTS, indent=4))
 
 if __name__ == "__main__":
-    print("Starting...")
+    print("Parsing old workouts...")
     asyncio.new_event_loop().run_until_complete(main())
